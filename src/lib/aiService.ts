@@ -139,9 +139,7 @@ Generate exactly ${options.questionCount} questions. Ensure all content is educa
 
   private async makeRequest(prompt: string): Promise<AIResponse> {
     try {
-      console.log('Making OpenAI request with model:', this.model);
-      console.log('Request URL:', `${this.baseUrl}/chat/completions`);
-      console.log('Prompt length:', prompt.length);
+      console.log('🤖 OpenAI: Initializing request');
       
       const response = await fetch(`${this.baseUrl}/chat/completions`, {
         method: 'POST',
@@ -161,11 +159,9 @@ Generate exactly ${options.questionCount} questions. Ensure all content is educa
         }),
       });
 
-      console.log('OpenAI Response status:', response.status);
-      
       if (!response.ok) {
         const errorText = await response.text();
-        console.log('OpenAI Error response:', errorText);
+        console.error('❌ OpenAI API Error:', response.status);
         let errorMessage = `API Error: ${response.status}`;
         try {
           const errorData = JSON.parse(errorText);
@@ -179,7 +175,7 @@ Generate exactly ${options.questionCount} questions. Ensure all content is educa
       }
 
       const data = await response.json();
-      console.log('OpenAI Success response received');
+      console.log('✅ OpenAI: Request completed successfully');
       
       if (!data.choices || !data.choices[0] || !data.choices[0].message) {
         throw new Error('Invalid response format from OpenAI');
@@ -320,9 +316,7 @@ Generate exactly ${options.questionCount} questions. Ensure all content is educa
 
   private async makeRequest(prompt: string): Promise<AIResponse> {
     try {
-      console.log('Making SamuraiAPI request with key:', this.apiKey.substring(0, 8) + '...');
-      console.log('Request URL:', `${this.baseUrl}/chat/completions`);
-      console.log('Using model:', this.model);
+      console.log('🤖 AIMLAPI: Initializing request');
       
       const requestBody = {
         model: this.model,
@@ -336,8 +330,6 @@ Generate exactly ${options.questionCount} questions. Ensure all content is educa
         max_tokens: 2000,
       };
       
-      console.log('Request body:', JSON.stringify(requestBody, null, 2));
-      
       const response = await fetch(`${this.baseUrl}/chat/completions`, {
         method: 'POST',
         headers: {
@@ -347,12 +339,9 @@ Generate exactly ${options.questionCount} questions. Ensure all content is educa
         body: JSON.stringify(requestBody),
       });
 
-      console.log('Response status:', response.status);
-      console.log('Response headers:', Object.fromEntries(response.headers.entries()));
-      
       if (!response.ok) {
         const errorText = await response.text();
-        console.log('Error response body:', errorText);
+        console.error('❌ AIMLAPI Error:', response.status);
         let errorMessage = `API Error: ${response.status}`;
         try {
           const errorData = JSON.parse(errorText);
@@ -366,7 +355,7 @@ Generate exactly ${options.questionCount} questions. Ensure all content is educa
       }
 
       const data = await response.json();
-      console.log('Success response:', data);
+      console.log('✅ AIMLAPI: Request completed successfully');
       
       if (!data.choices || !data.choices[0] || !data.choices[0].message) {
         throw new Error('Invalid response format from AIMLAPI');
@@ -381,11 +370,7 @@ Generate exactly ${options.questionCount} questions. Ensure all content is educa
         }
       };
     } catch (error) {
-      console.error('AIMLAPI Service Error:', error);
-      console.error('Error details:', {
-        message: error instanceof Error ? error.message : 'Unknown error',
-        stack: error instanceof Error ? error.stack : undefined
-      });
+      console.error('❌ AIMLAPI Service Error:', error instanceof Error ? error.message : 'Unknown error');
       return { content: '', error: error instanceof Error ? error.message : 'Unknown error' };
     }
   }
@@ -809,15 +794,7 @@ class AIService {
         active_provider: import.meta.env.VITE_ACTIVE_AI_PROVIDER || 'openai'
       };
       
-      console.log('Environment variables check:', {
-        hasSupabaseUrl: !!import.meta.env.VITE_SUPABASE_URL,
-        hasSupabaseKey: !!import.meta.env.VITE_SUPABASE_ANON_KEY,
-        hasOpenAI: !!import.meta.env.VITE_OPENAI_API_KEY,
-        hasClaude: !!import.meta.env.VITE_CLAUDE_API_KEY,
-        hasGemini: !!import.meta.env.VITE_GEMINI_API_KEY,
-        hasAIMLAPI: !!import.meta.env.VITE_AIMLAPI_API_KEY,
-        activeProvider: import.meta.env.VITE_ACTIVE_AI_PROVIDER
-      });
+      console.log('🔧 AI Service: Initializing providers');
       
       // Try to get additional config from Supabase if available
       try {
@@ -826,20 +803,16 @@ class AIService {
           config = { ...config, ...supabaseConfig };
         }
       } catch (error) {
-        console.warn('Could not fetch AI config from Supabase, using environment variables');
+        console.warn('⚠️ AI Service: Using environment variables (Supabase config unavailable)');
       }
     } catch (error) {
-      console.warn('Error initializing AI config, using defaults');
+      console.warn('⚠️ AI Service: Using fallback configuration');
       config = {
         active_provider: 'mock'
       };
     }
     
-    console.log('AI Config loaded:', { 
-      hasAIMLAPI: !!config.aimlapi_key, 
-      activeProvider: config.active_provider,
-      availableKeys: Object.keys(config).filter(k => k.endsWith('_key') && config[k])
-    });
+    console.log('✅ AI Service: Configuration loaded successfully');
     
     // Always add mock provider as fallback
     this.providers.set('mock', new MockAIProvider());
@@ -864,15 +837,11 @@ class AIService {
     // Set active provider
     if (config.active_provider && this.providers.has(config.active_provider)) {
       this.activeProvider = config.active_provider;
+      console.log(`🎯 AI Service: Active provider set to ${this.activeProvider}`);
     } else {
-      console.warn('Active provider not available, falling back to mock');
+      console.warn('⚠️ AI Service: Falling back to mock provider');
       this.activeProvider = 'mock';
     }
-    
-    console.log('Final AI setup:', {
-      activeProvider: this.activeProvider,
-      availableProviders: Array.from(this.providers.keys())
-    });
   }
 
   private async getAIConfig(): Promise<any> {
@@ -893,26 +862,25 @@ class AIService {
   }
 
   async generateQuiz(content: string, options: QuizOptions): Promise<AIResponse> {
-    console.log('Generating quiz with provider:', this.activeProvider);
-    console.log('Available providers:', this.getAvailableProviders());
+    console.log(`🎲 Quiz Generation: Using ${this.activeProvider} provider`);
     
     const provider = this.providers.get(this.activeProvider);
     if (!provider) {
-      console.error('No AI provider available. Active:', this.activeProvider, 'Available:', this.getAvailableProviders());
+      console.error('❌ Quiz Generation: No AI provider available');
       return { content: '', error: `No AI provider available. Active: ${this.activeProvider}` };
     }
 
     try {
       const result = await provider.generateQuiz(content, options);
-      console.log('Quiz generation result:', { success: !result.error, hasContent: !!result.content });
+      console.log(`✅ Quiz Generation: ${result.error ? 'Failed' : 'Completed successfully'}`);
       this.logUsage('generate_quiz', provider.name, result);
       return result;
     } catch (error) {
-      console.error('Quiz generation error:', error);
+      console.error('❌ Quiz Generation: Error occurred');
       // Try fallback provider
       const fallbackProvider = this.getFallbackProvider();
       if (fallbackProvider) {
-        console.log('Trying fallback provider:', fallbackProvider.name);
+        console.log(`🔄 Quiz Generation: Trying fallback provider (${fallbackProvider.name})`);
         const result = await fallbackProvider.generateQuiz(content, options);
         this.logUsage('generate_quiz', fallbackProvider.name, result);
         return result;
@@ -1018,7 +986,7 @@ class AIService {
         });
       }
     } catch (error) {
-      console.error('Error logging AI usage:', error);
+      console.warn('⚠️ Usage logging failed');
     }
   }
 

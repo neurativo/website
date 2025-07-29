@@ -27,7 +27,7 @@ function App() {
           <Router>
             <ScrollToTop />
             <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 relative">
-              <div className="absolute inset-0 opacity-10">
+              <div className="absolute inset-0 opacity-10 z-0">
                 <div className="w-full h-full" style={{
                   backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%239C92AC' fill-opacity='0.4'%3E%3Ccircle cx='30' cy='30' r='1'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
                   backgroundRepeat: 'repeat'
@@ -35,13 +35,13 @@ function App() {
               </div>
               
               <Aurora 
-                colorStops={["#6366f1", "#8b5cf6", "#ec4899"]}
-                amplitude={0.4}
-                blend={0.25}
-                speed={0.25}
+                colorStops={["#3A29FF", "#FF94B4", "#FF3232"]}
+                amplitude={1.0}
+                blend={0.5}
+                speed={0.5}
               />
               
-              <div className="relative z-10">
+              <div className="relative z-30">
                 <Navigation />
                 
                 <main className="pt-16 md:pt-20 pb-20 md:pb-8">

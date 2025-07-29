@@ -96,19 +96,17 @@ void main() {
   COLOR_RAMP(colors, uv.x, rampColor);
   
   // Create horizontal moving aurora effect
-  float horizontalFlow = snoise(vec2(uv.x * 3.0 + uTime * 0.2, uTime * 0.1)) * 0.2;
-  float verticalFlow = snoise(vec2(uv.x * 2.0 + uTime * 0.15, uv.y * 2.0 + uTime * 0.05)) * 0.15;
+  float horizontalFlow = snoise(vec2(uv.x * 1.5 + uTime * 0.1, uTime * 0.25)) * 0.5 * uAmplitude;
+  float height = exp(horizontalFlow);
+  height = (uv.y * 1.8 - height + 0.2);
+  float intensity = 0.6 * height;
   
-  float height = exp(horizontalFlow + verticalFlow) * uAmplitude;
-  height = (uv.y * 1.5 - height + 0.3);
-  float intensity = 0.3 * height;
-  
-  float midPoint = 0.25;
-  float auroraAlpha = smoothstep(midPoint - uBlend * 0.3, midPoint + uBlend * 0.3, intensity);
+  float midPoint = 0.20;
+  float auroraAlpha = smoothstep(midPoint - uBlend * 0.5, midPoint + uBlend * 0.5, intensity);
   
   vec3 auroraColor = intensity * rampColor;
   
-  fragColor = vec4(auroraColor * auroraAlpha, auroraAlpha * 0.2);
+  fragColor = vec4(auroraColor * auroraAlpha, auroraAlpha);
 }
 `;
 
@@ -122,10 +120,10 @@ interface AuroraProps {
 
 export default function Aurora(props: AuroraProps) {
   const {
-    colorStops = ["#6366f1", "#8b5cf6", "#ec4899"],
-    amplitude = 0.8,
-    blend = 0.4,
-    speed = 0.4
+    colorStops = ["#3A29FF", "#FF94B4", "#FF3232"],
+    amplitude = 1.0,
+    blend = 0.5,
+    speed = 0.5
   } = props;
   const propsRef = useRef(props);
   propsRef.current = props;
@@ -134,7 +132,11 @@ export default function Aurora(props: AuroraProps) {
 
   useEffect(() => {
     const ctn = ctnDom.current;
-    if (!ctn) return;
+    if (!ctn) {
+      console.log('Aurora: Container not found');
+      return;
+    }
+    console.log('Aurora: Initializing with colors:', colorStops);
 
     const renderer = new Renderer({
       alpha: true,
@@ -188,15 +190,19 @@ export default function Aurora(props: AuroraProps) {
     let animateId = 0;
     const update = (t: number) => {
       animateId = requestAnimationFrame(update);
+      if (!program) return;
+      
       const { time = t * 0.01, speed: currentSpeed = speed } = propsRef.current;
       program.uniforms.uTime.value = time * currentSpeed * 0.1;
       program.uniforms.uAmplitude.value = propsRef.current.amplitude ?? amplitude;
       program.uniforms.uBlend.value = propsRef.current.blend ?? blend;
       const stops = propsRef.current.colorStops ?? colorStops;
-      program.uniforms.uColorStops.value = stops.map((hex) => {
-        const c = new Color(hex);
-        return [c.r, c.g, c.b];
-      });
+      if (stops && Array.isArray(stops)) {
+        program.uniforms.uColorStops.value = stops.map((hex) => {
+          const c = new Color(hex);
+          return [c.r, c.g, c.b];
+        });
+      }
       renderer.render({ scene: mesh });
     };
     animateId = requestAnimationFrame(update);

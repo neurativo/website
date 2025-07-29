@@ -40,7 +40,7 @@ serve(async (req) => {
 
   try {
     const requestBody = await req.text()
-    console.log('Request body:', requestBody)
+    console.log('📄 Content Extraction: Processing request')
     
     let parsedBody: ContentExtractionRequest
     try {

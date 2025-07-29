@@ -114,13 +114,12 @@ const CreateQuiz = () => {
     if (!content.trim()) return;
 
     setLoading(true);
-    console.log('Starting quiz generation...');
-    console.log('Content length:', content.length);
-    console.log('Quiz settings:', quizSettings);
+    console.log('🎲 Quiz Creation: Starting generation...');
+    console.log('📊 Quiz Creation: Content processed');
     
     try {
       const response = await aiService.generateQuiz(content, quizSettings);
-      console.log('AI Service Response:', response);
+      console.log('🤖 Quiz Creation: AI response received');
       
       if (response.error) {
         console.error('Error generating quiz:', response.error);
