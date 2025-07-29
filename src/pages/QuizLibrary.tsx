@@ -62,9 +62,11 @@ const QuizLibrary = () => {
 
   const fetchQuizzes = async () => {
     try {
+      // Only fetch public quizzes for the library
       const { data, error } = await supabase
         .from('quizzes')
         .select('*')
+        .eq('is_public', true)
         .order('created_at', { ascending: false });
 
       if (error) throw error;

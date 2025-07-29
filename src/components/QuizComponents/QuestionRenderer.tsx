@@ -20,41 +20,41 @@ const QuestionRenderer: React.FC<QuestionRendererProps> = ({
   disabled = false
 }) => {
   const renderQuestionContent = () => {
-    switch (question.type) {
-      case 'multiple_choice':
-        return (
-          <MultipleChoice
-            question={question}
-            onAnswer={onAnswer as (answer: string) => void}
-            showResult={showResult}
-            userAnswer={userAnswer as string}
-            disabled={disabled}
-          />
-        );
-      case 'true_false':
-        return (
-          <TrueFalse
-            question={question}
-            onAnswer={onAnswer as (answer: string) => void}
-            showResult={showResult}
-            userAnswer={userAnswer as string}
-            disabled={disabled}
-          />
-        );
-      case 'short_answer':
-        return (
-          <ShortAnswer
-            question={question}
-            onAnswer={onAnswer as (answer: string) => void}
-            showResult={showResult}
-            userAnswer={userAnswer as string}
-            disabled={disabled}
-          />
-        );
+  switch (question.type) {
+    case 'multiple_choice':
+      return (
+        <MultipleChoice
+          question={question}
+          onAnswer={onAnswer as (answer: string) => void}
+          showResult={showResult}
+          userAnswer={userAnswer as string}
+          disabled={disabled}
+        />
+      );
+    case 'true_false':
+      return (
+        <TrueFalse
+          question={question}
+          onAnswer={onAnswer as (answer: string) => void}
+          showResult={showResult}
+          userAnswer={userAnswer as string}
+          disabled={disabled}
+        />
+      );
+    case 'short_answer':
+      return (
+        <ShortAnswer
+          question={question}
+          onAnswer={onAnswer as (answer: string) => void}
+          showResult={showResult}
+          userAnswer={userAnswer as string}
+          disabled={disabled}
+        />
+      );
 
-      default:
-        return <div>Unsupported question type</div>;
-    }
+    default:
+      return <div>Unsupported question type</div>;
+  }
   };
 
   return (
