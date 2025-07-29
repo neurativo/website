@@ -323,8 +323,20 @@ Generate exactly ${options.questionCount} questions. Ensure all content is educa
       console.log('Making SamuraiAPI request with key:', this.apiKey.substring(0, 8) + '...');
       console.log('Request URL:', `${this.baseUrl}/chat/completions`);
       console.log('Using model:', this.model);
-      console.log('Full API key for debugging:', this.apiKey);
-      console.log('Authorization header:', `Bearer ${this.apiKey}`);
+      
+      const requestBody = {
+        model: this.model,
+        messages: [
+          {
+            role: 'user',
+            content: `You are an expert educational content creator. Always return valid JSON when requested.\n\n${prompt}`
+          }
+        ],
+        temperature: 0.7,
+        max_tokens: 2000,
+      };
+      
+      console.log('Request body:', JSON.stringify(requestBody, null, 2));
       
       const response = await fetch(`${this.baseUrl}/chat/completions`, {
         method: 'POST',
@@ -332,17 +344,7 @@ Generate exactly ${options.questionCount} questions. Ensure all content is educa
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${this.apiKey}`,
         },
-        body: JSON.stringify({
-          model: this.model,
-          messages: [
-            {
-              role: 'user',
-              content: `You are an expert educational content creator. Always return valid JSON when requested.\n\n${prompt}`
-            }
-          ],
-          temperature: 0.7,
-          max_tokens: 2000,
-        }),
+        body: JSON.stringify(requestBody),
       });
 
       console.log('Response status:', response.status);
@@ -351,11 +353,25 @@ Generate exactly ${options.questionCount} questions. Ensure all content is educa
       if (!response.ok) {
         const errorText = await response.text();
         console.log('Error response body:', errorText);
-        throw new Error(`API Error: ${response.status}`);
+        let errorMessage = `API Error: ${response.status}`;
+        try {
+          const errorData = JSON.parse(errorText);
+          if (errorData.error && errorData.error.message) {
+            errorMessage = errorData.error.message;
+          }
+        } catch (e) {
+          // Use default error message
+        }
+        throw new Error(errorMessage);
       }
 
       const data = await response.json();
       console.log('Success response:', data);
+      
+      if (!data.choices || !data.choices[0] || !data.choices[0].message) {
+        throw new Error('Invalid response format from AIMLAPI');
+      }
+      
       return {
         content: data.choices[0].message.content,
         usage: {
@@ -366,6 +382,10 @@ Generate exactly ${options.questionCount} questions. Ensure all content is educa
       };
     } catch (error) {
       console.error('AIMLAPI Service Error:', error);
+      console.error('Error details:', {
+        message: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined
+      });
       return { content: '', error: error instanceof Error ? error.message : 'Unknown error' };
     }
   }
@@ -789,6 +809,16 @@ class AIService {
         active_provider: import.meta.env.VITE_ACTIVE_AI_PROVIDER || 'aimlapi'
       };
       
+      console.log('Environment variables check:', {
+        hasSupabaseUrl: !!import.meta.env.VITE_SUPABASE_URL,
+        hasSupabaseKey: !!import.meta.env.VITE_SUPABASE_ANON_KEY,
+        hasOpenAI: !!import.meta.env.VITE_OPENAI_API_KEY,
+        hasClaude: !!import.meta.env.VITE_CLAUDE_API_KEY,
+        hasGemini: !!import.meta.env.VITE_GEMINI_API_KEY,
+        hasAIMLAPI: !!import.meta.env.VITE_AIMLAPI_API_KEY,
+        activeProvider: import.meta.env.VITE_ACTIVE_AI_PROVIDER
+      });
+      
       // Try to get additional config from Supabase if available
       try {
         const supabaseConfig = await this.getAIConfig();
@@ -836,8 +866,14 @@ class AIService {
     if (config.active_provider && this.providers.has(config.active_provider)) {
       this.activeProvider = config.active_provider;
     } else {
+      console.warn('Active provider not available, falling back to mock');
       this.activeProvider = 'mock';
     }
+    
+    console.log('Final AI setup:', {
+      activeProvider: this.activeProvider,
+      availableProviders: Array.from(this.providers.keys())
+    });
   }
 
   private async getAIConfig(): Promise<any> {
