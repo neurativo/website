@@ -47,9 +47,9 @@ const Home = () => {
   ];
 
   return (
-    <div className="-mt-16 md:-mt-20">
+    <div className="-mt-8 md:-mt-12">
       {/* Hero Section */}
-      <section className="px-4 py-20 md:py-28">
+      <section className="px-4 py-12 md:py-16">
         <div className="max-w-6xl mx-auto">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -128,7 +128,7 @@ const Home = () => {
 
       {/* Stats Section */}
       {user && (
-        <section className="px-4 py-20 md:py-28">
+        <section className="px-4 py-12 md:py-16">
           <div className="max-w-6xl mx-auto">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -166,7 +166,7 @@ const Home = () => {
       )}
 
       {/* Features Section */}
-      <section className="px-4 py-20 md:py-28">
+      <section className="px-4 py-12 md:py-16">
         <div className="max-w-6xl mx-auto">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -207,7 +207,7 @@ const Home = () => {
       </section>
 
       {/* CTA Section */}
-      <section className="px-4 py-20 md:py-28 mb-8">
+      <section className="px-4 py-12 md:py-16 mb-8">
         <div className="max-w-4xl mx-auto">
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
