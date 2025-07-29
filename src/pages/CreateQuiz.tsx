@@ -59,7 +59,7 @@ const CreateQuiz = () => {
     
     setLoading(true);
     try {
-      console.log('Extracting content from URL:', url);
+  
       
       // Call Supabase Edge Function to extract content
       const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/extract-content`, {
@@ -84,7 +84,7 @@ const CreateQuiz = () => {
       }
 
       const data = await response.json();
-      console.log('Extracted content:', data);
+  
       
       if (data.error) {
         throw new Error(data.error);
@@ -114,12 +114,12 @@ const CreateQuiz = () => {
     if (!content.trim()) return;
 
     setLoading(true);
-    console.log('🎲 Quiz Creation: Starting generation...');
-    console.log('📊 Quiz Creation: Content processed');
+
+
     
     try {
       const response = await aiService.generateQuiz(content, quizSettings);
-      console.log('🤖 Quiz Creation: AI response received');
+  
       
       if (response.error) {
         console.error('Error generating quiz:', response.error);
@@ -130,7 +130,7 @@ const CreateQuiz = () => {
       if (response.content) {
         try {
           const quizData = JSON.parse(response.content);
-          console.log('Parsed quiz data:', quizData);
+      
           
           // Validate quiz data structure
           if (quizData && quizData.questions && Array.isArray(quizData.questions)) {
@@ -142,7 +142,7 @@ const CreateQuiz = () => {
           }
         } catch (parseError) {
           console.error('Error parsing quiz JSON:', parseError);
-          console.log('Raw response content:', response.content);
+      
           toast.error('Error parsing quiz response. Please try again.');
         }
       } else {

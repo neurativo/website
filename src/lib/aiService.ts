@@ -139,7 +139,7 @@ Generate exactly ${options.questionCount} questions. Ensure all content is educa
 
   private async makeRequest(prompt: string): Promise<AIResponse> {
     try {
-      console.log('🤖 OpenAI: Initializing request');
+
       
       const response = await fetch(`${this.baseUrl}/chat/completions`, {
         method: 'POST',
@@ -161,7 +161,7 @@ Generate exactly ${options.questionCount} questions. Ensure all content is educa
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('❌ OpenAI API Error:', response.status);
+
         let errorMessage = `API Error: ${response.status}`;
         try {
           const errorData = JSON.parse(errorText);
@@ -175,7 +175,7 @@ Generate exactly ${options.questionCount} questions. Ensure all content is educa
       }
 
       const data = await response.json();
-      console.log('✅ OpenAI: Request completed successfully');
+
       
       if (!data.choices || !data.choices[0] || !data.choices[0].message) {
         throw new Error('Invalid response format from OpenAI');
@@ -316,7 +316,7 @@ Generate exactly ${options.questionCount} questions. Ensure all content is educa
 
   private async makeRequest(prompt: string): Promise<AIResponse> {
     try {
-      console.log('🤖 AIMLAPI: Initializing request');
+
       
       const requestBody = {
         model: this.model,
@@ -341,7 +341,7 @@ Generate exactly ${options.questionCount} questions. Ensure all content is educa
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('❌ AIMLAPI Error:', response.status);
+
         let errorMessage = `API Error: ${response.status}`;
         try {
           const errorData = JSON.parse(errorText);
@@ -355,7 +355,7 @@ Generate exactly ${options.questionCount} questions. Ensure all content is educa
       }
 
       const data = await response.json();
-      console.log('✅ AIMLAPI: Request completed successfully');
+
       
       if (!data.choices || !data.choices[0] || !data.choices[0].message) {
         throw new Error('Invalid response format from AIMLAPI');
@@ -370,7 +370,7 @@ Generate exactly ${options.questionCount} questions. Ensure all content is educa
         }
       };
     } catch (error) {
-      console.error('❌ AIMLAPI Service Error:', error instanceof Error ? error.message : 'Unknown error');
+
       return { content: '', error: error instanceof Error ? error.message : 'Unknown error' };
     }
   }
@@ -703,7 +703,7 @@ class MockAIProvider implements AIProvider {
   name = 'mock';
 
   async generateQuiz(content: string, options: QuizOptions): Promise<AIResponse> {
-    console.log('Using Mock AI Provider for quiz generation');
+
     
     // Generate a simple mock quiz
     const mockQuiz = {
@@ -794,7 +794,7 @@ class AIService {
         active_provider: import.meta.env.VITE_ACTIVE_AI_PROVIDER || 'openai'
       };
       
-      console.log('🔧 AI Service: Initializing providers');
+
       
       // Try to get additional config from Supabase if available
       try {
@@ -803,16 +803,16 @@ class AIService {
           config = { ...config, ...supabaseConfig };
         }
       } catch (error) {
-        console.warn('⚠️ AI Service: Using environment variables (Supabase config unavailable)');
+
       }
     } catch (error) {
-      console.warn('⚠️ AI Service: Using fallback configuration');
+
       config = {
         active_provider: 'mock'
       };
     }
     
-    console.log('✅ AI Service: Configuration loaded successfully');
+
     
     // Always add mock provider as fallback
     this.providers.set('mock', new MockAIProvider());
@@ -837,9 +837,9 @@ class AIService {
     // Set active provider
     if (config.active_provider && this.providers.has(config.active_provider)) {
       this.activeProvider = config.active_provider;
-      console.log(`🎯 AI Service: Active provider set to ${this.activeProvider}`);
+
     } else {
-      console.warn('⚠️ AI Service: Falling back to mock provider');
+
       this.activeProvider = 'mock';
     }
   }
@@ -862,25 +862,25 @@ class AIService {
   }
 
   async generateQuiz(content: string, options: QuizOptions): Promise<AIResponse> {
-    console.log(`🎲 Quiz Generation: Using ${this.activeProvider} provider`);
+
     
     const provider = this.providers.get(this.activeProvider);
     if (!provider) {
-      console.error('❌ Quiz Generation: No AI provider available');
+
       return { content: '', error: `No AI provider available. Active: ${this.activeProvider}` };
     }
 
     try {
       const result = await provider.generateQuiz(content, options);
-      console.log(`✅ Quiz Generation: ${result.error ? 'Failed' : 'Completed successfully'}`);
+
       this.logUsage('generate_quiz', provider.name, result);
       return result;
     } catch (error) {
-      console.error('❌ Quiz Generation: Error occurred');
+
       // Try fallback provider
       const fallbackProvider = this.getFallbackProvider();
       if (fallbackProvider) {
-        console.log(`🔄 Quiz Generation: Trying fallback provider (${fallbackProvider.name})`);
+
         const result = await fallbackProvider.generateQuiz(content, options);
         this.logUsage('generate_quiz', fallbackProvider.name, result);
         return result;
@@ -986,7 +986,7 @@ class AIService {
         });
       }
     } catch (error) {
-      console.warn('⚠️ Usage logging failed');
+
     }
   }
 

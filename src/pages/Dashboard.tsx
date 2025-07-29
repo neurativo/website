@@ -206,7 +206,7 @@ const Dashboard = () => {
         case 'quiz-battles':
           return { onClose: closeModal };
         case 'daily-challenge':
-          return { onClose: closeModal, onStartQuiz: (quizId: string) => console.log('Start quiz:', quizId) };
+          return { onClose: closeModal, onStartQuiz: (quizId: string) => {} };
         case 'explain-to-earn':
           return { 
             onClose: closeModal,
@@ -217,7 +217,7 @@ const Dashboard = () => {
         case 'voice-input':
           return {
             onClose: closeModal,
-            onVoiceInput: (text: string) => console.log('Voice input:', text),
+            onVoiceInput: (text: string) => {},
             question: 'What is the capital of France?'
           };
         case 'ar-learning':

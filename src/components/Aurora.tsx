@@ -133,10 +133,10 @@ export default function Aurora(props: AuroraProps) {
   useEffect(() => {
     const ctn = ctnDom.current;
     if (!ctn) {
-      console.log('Aurora: Container not found');
+  
       return;
     }
-    console.log('Aurora: Initializing with colors:', colorStops);
+
 
     const renderer = new Renderer({
       alpha: true,
