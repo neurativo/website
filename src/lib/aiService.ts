@@ -805,8 +805,8 @@ class AIService {
         openai_key: import.meta.env.VITE_OPENAI_API_KEY,
         claude_key: import.meta.env.VITE_CLAUDE_API_KEY,
         gemini_key: import.meta.env.VITE_GEMINI_API_KEY,
-        aimlapi_key: import.meta.env.VITE_AIMLAPI_API_KEY || 'sk-aTGsMd60veaEH5x8i8sq97VY2MyE5gBEGx3iCWlITmcejaTL',
-        active_provider: import.meta.env.VITE_ACTIVE_AI_PROVIDER || 'aimlapi'
+        aimlapi_key: import.meta.env.VITE_AIMLAPI_API_KEY,
+        active_provider: import.meta.env.VITE_ACTIVE_AI_PROVIDER || 'openai'
       };
       
       console.log('Environment variables check:', {
@@ -831,8 +831,7 @@ class AIService {
     } catch (error) {
       console.warn('Error initializing AI config, using defaults');
       config = {
-        aimlapi_key: 'sk-aTGsMd60veaEH5x8i8sq97VY2MyE5gBEGx3iCWlITmcejaTL',
-        active_provider: 'aimlapi'
+        active_provider: 'mock'
       };
     }
     
