@@ -36,9 +36,9 @@ function App() {
               
               <Aurora 
                 colorStops={["#6366f1", "#8b5cf6", "#ec4899"]}
-                amplitude={0.6}
-                blend={0.3}
-                speed={0.3}
+                amplitude={0.4}
+                blend={0.25}
+                speed={0.25}
               />
               
               <div className="relative z-10">

@@ -96,19 +96,19 @@ void main() {
   COLOR_RAMP(colors, uv.x, rampColor);
   
   // Create horizontal moving aurora effect
-  float horizontalFlow = snoise(vec2(uv.x * 3.0 + uTime * 0.2, uTime * 0.1)) * 0.3;
-  float verticalFlow = snoise(vec2(uv.x * 2.0 + uTime * 0.15, uv.y * 2.0 + uTime * 0.05)) * 0.2;
+  float horizontalFlow = snoise(vec2(uv.x * 3.0 + uTime * 0.2, uTime * 0.1)) * 0.2;
+  float verticalFlow = snoise(vec2(uv.x * 2.0 + uTime * 0.15, uv.y * 2.0 + uTime * 0.05)) * 0.15;
   
   float height = exp(horizontalFlow + verticalFlow) * uAmplitude;
   height = (uv.y * 1.5 - height + 0.3);
-  float intensity = 0.4 * height;
+  float intensity = 0.3 * height;
   
   float midPoint = 0.25;
   float auroraAlpha = smoothstep(midPoint - uBlend * 0.3, midPoint + uBlend * 0.3, intensity);
   
   vec3 auroraColor = intensity * rampColor;
   
-  fragColor = vec4(auroraColor * auroraAlpha, auroraAlpha * 0.3);
+  fragColor = vec4(auroraColor * auroraAlpha, auroraAlpha * 0.2);
 }
 `;
 
