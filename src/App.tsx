@@ -17,6 +17,13 @@ import Profile from './pages/Profile';
 import Dashboard from './pages/Dashboard';
 import Pricing from './pages/Pricing';
 import Admin from './pages/Admin';
+import AuthTest from './components/AuthTest';
+import DiagnosticTest from './components/DiagnosticTest';
+import SimpleTest from './components/SimpleTest';
+import SimpleAuthTest from './components/SimpleAuthTest';
+import DatabaseDebugger from './components/DatabaseDebugger';
+import ConnectionTest from './components/ConnectionTest';
+import SimpleConnectionTest from './components/SimpleConnectionTest';
 import './index.css';
 
 function App() {
@@ -54,6 +61,13 @@ function App() {
                     <Route path="/profile" element={<Profile />} />
                     <Route path="/pricing" element={<Pricing />} />
                     <Route path="/admin" element={<Admin />} />
+                    <Route path="/auth-test" element={<AuthTest />} />
+                    <Route path="/diagnostic" element={<DiagnosticTest />} />
+                    <Route path="/simple-test" element={<SimpleTest />} />
+                    <Route path="/simple-auth-test" element={<SimpleAuthTest />} />
+                    <Route path="/debug" element={<DatabaseDebugger />} />
+                    <Route path="/connection-test" element={<ConnectionTest />} />
+                    <Route path="/simple-connection-test" element={<SimpleConnectionTest />} />
                   </Routes>
                 </main>
                 

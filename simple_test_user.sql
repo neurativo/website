@@ -1,0 +1,146 @@
+-- =====================================================
+-- SIMPLE TEST USER SETUP
+-- No ON CONFLICT clauses to avoid constraint errors
+-- =====================================================
+
+-- Step 1: Drop ALL triggers that might cause issues (with CASCADE)
+DROP TRIGGER IF EXISTS handle_new_user_trigger ON auth.users CASCADE;
+DROP TRIGGER IF EXISTS handle_new_user_auto_confirm_trigger ON auth.users CASCADE;
+DROP TRIGGER IF EXISTS handle_new_user_auto_confirm ON auth.users CASCADE;
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users CASCADE;
+
+-- Step 2: Drop ALL functions that might cause issues (with CASCADE)
+DROP FUNCTION IF EXISTS public.handle_new_user() CASCADE;
+DROP FUNCTION IF EXISTS public.handle_new_user_auto_confirm() CASCADE;
+DROP FUNCTION IF EXISTS handle_new_user() CASCADE;
+DROP FUNCTION IF EXISTS handle_new_user_auto_confirm() CASCADE;
+
+-- Step 3: Clean up any existing test users
+DELETE FROM public.users WHERE email = 'test@example.com' OR username LIKE 'testuser%';
+DELETE FROM auth.users WHERE email = 'test@example.com';
+DELETE FROM public.user_stats WHERE user_id IN (
+    SELECT id FROM auth.users WHERE email = 'test@example.com'
+);
+
+-- Step 4: Ensure users table exists with proper structure
+CREATE TABLE IF NOT EXISTS public.users (
+    id UUID PRIMARY KEY,
+    email TEXT NOT NULL,
+    username TEXT UNIQUE NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Step 5: Ensure user_stats table exists with correct structure
+CREATE TABLE IF NOT EXISTS public.user_stats (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID REFERENCES public.users(id) ON DELETE CASCADE,
+    total_xp INTEGER DEFAULT 0,
+    current_level INTEGER DEFAULT 1,
+    current_streak INTEGER DEFAULT 0,
+    best_streak INTEGER DEFAULT 0,
+    total_quizzes INTEGER DEFAULT 0,
+    total_correct INTEGER DEFAULT 0,
+    total_questions INTEGER DEFAULT 0,
+    total_time_spent INTEGER DEFAULT 0,
+    achievements TEXT[] DEFAULT '{}',
+    last_quiz_date DATE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Step 6: Grant permissions
+GRANT ALL ON public.users TO anon, authenticated;
+GRANT ALL ON public.user_stats TO anon, authenticated;
+
+-- Step 7: Add test user to auth.users (Supabase auth table)
+INSERT INTO auth.users (
+    id,
+    email,
+    encrypted_password,
+    email_confirmed_at,
+    created_at,
+    updated_at,
+    raw_app_meta_data,
+    raw_user_meta_data,
+    is_super_admin,
+    confirmation_token,
+    email_change,
+    email_change_token_new,
+    recovery_token
+) VALUES (
+    '88888888-8888-8888-8888-888888888888',
+    'test@example.com',
+    crypt('password123', gen_salt('bf')),
+    NOW(),
+    NOW(),
+    NOW(),
+    '{"provider":"email","providers":["email"]}',
+    '{"username":"testuser123"}',
+    false,
+    '',
+    '',
+    '',
+    ''
+);
+
+-- Step 8: Add test user to public.users table
+INSERT INTO public.users (
+    id,
+    email,
+    username
+) VALUES (
+    '88888888-8888-8888-8888-888888888888',
+    'test@example.com',
+    'testuser123'
+);
+
+-- Step 9: Add test user stats
+INSERT INTO public.user_stats (
+    user_id,
+    total_xp,
+    current_level,
+    current_streak,
+    best_streak,
+    total_quizzes,
+    total_correct,
+    total_questions,
+    total_time_spent,
+    achievements
+) VALUES (
+    '88888888-8888-8888-8888-888888888888',
+    0,
+    1,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    '{}'
+);
+
+-- Step 10: Verify the test user exists
+SELECT 
+    'Test user created successfully!' as message,
+    u.id,
+    u.email,
+    u.username,
+    u.created_at,
+    s.total_xp,
+    s.current_level
+FROM public.users u
+LEFT JOIN public.user_stats s ON u.id = s.user_id
+WHERE u.email = 'test@example.com';
+
+-- Step 11: Success message
+DO $$
+BEGIN
+    RAISE NOTICE '✅ SIMPLE TEST USER CREATED!';
+    RAISE NOTICE '✅ All triggers and functions dropped with CASCADE';
+    RAISE NOTICE '✅ No ON CONFLICT clauses to avoid constraint errors';
+    RAISE NOTICE '✅ Test user created successfully';
+    RAISE NOTICE '✅ Email: test@example.com';
+    RAISE NOTICE '✅ Password: password123';
+    RAISE NOTICE '✅ Username: testuser123';
+    RAISE NOTICE '✅ Ready for login testing!';
+END $$; 

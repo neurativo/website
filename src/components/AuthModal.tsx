@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Mail, Lock, User, Eye, EyeOff, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
+import { X, Mail, Lock, User, Eye, EyeOff, Loader2 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import toast from 'react-hot-toast';
 
@@ -70,6 +70,8 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, defaultMode = 's
     if (!validateForm()) return;
 
     setLoading(true);
+    setErrors({});
+    
     try {
       if (mode === 'signin') {
         await login(email, password);
@@ -79,9 +81,20 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, defaultMode = 's
         const result = await signup(email, password, username);
         toast.success(result.message);
         setMode('signin');
+        resetForm();
       }
     } catch (error: any) {
-      toast.error(error.message || 'Authentication failed');
+      const errorMessage = error.message || 'Authentication failed';
+      toast.error(errorMessage);
+      
+      // Set specific field errors if available
+      if (errorMessage.includes('email')) {
+        setErrors(prev => ({ ...prev, email: errorMessage }));
+      } else if (errorMessage.includes('password')) {
+        setErrors(prev => ({ ...prev, password: errorMessage }));
+      } else if (errorMessage.includes('username')) {
+        setErrors(prev => ({ ...prev, username: errorMessage }));
+      }
     } finally {
       setLoading(false);
     }
@@ -157,14 +170,11 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, defaultMode = 's
                     className={`w-full pl-10 pr-4 py-3 bg-white/10 border rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-blue-400 transition-all ${
                       errors.username ? 'border-red-400' : 'border-white/20'
                     }`}
-                    placeholder="Choose a username"
+                    placeholder="Enter your username"
                   />
                 </div>
                 {errors.username && (
-                  <p className="text-red-400 text-xs mt-1 flex items-center">
-                    <AlertCircle className="w-3 h-3 mr-1" />
-                    {errors.username}
-                  </p>
+                  <p className="text-red-400 text-sm mt-1">{errors.username}</p>
                 )}
               </div>
             )}
@@ -187,10 +197,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, defaultMode = 's
                 />
               </div>
               {errors.email && (
-                <p className="text-red-400 text-xs mt-1 flex items-center">
-                  <AlertCircle className="w-3 h-3 mr-1" />
-                  {errors.email}
-                </p>
+                <p className="text-red-400 text-sm mt-1">{errors.email}</p>
               )}
             </div>
 
@@ -219,10 +226,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, defaultMode = 's
                 </button>
               </div>
               {errors.password && (
-                <p className="text-red-400 text-xs mt-1 flex items-center">
-                  <AlertCircle className="w-3 h-3 mr-1" />
-                  {errors.password}
-                </p>
+                <p className="text-red-400 text-sm mt-1">{errors.password}</p>
               )}
             </div>
 
@@ -252,10 +256,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, defaultMode = 's
                   </button>
                 </div>
                 {errors.confirmPassword && (
-                  <p className="text-red-400 text-xs mt-1 flex items-center">
-                    <AlertCircle className="w-3 h-3 mr-1" />
-                    {errors.confirmPassword}
-                  </p>
+                  <p className="text-red-400 text-sm mt-1">{errors.confirmPassword}</p>
                 )}
               </div>
             )}
@@ -264,7 +265,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, defaultMode = 's
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed text-white py-3 rounded-lg font-semibold transition-all duration-200 flex items-center justify-center"
+              className="w-full py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg font-medium hover:from-blue-600 hover:to-purple-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
             >
               {loading ? (
                 <>
@@ -272,50 +273,23 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, defaultMode = 's
                   {mode === 'signin' ? 'Signing In...' : 'Creating Account...'}
                 </>
               ) : (
-                <>
-                  {mode === 'signin' ? 'Sign In' : 'Create Account'}
-                </>
+                mode === 'signin' ? 'Sign In' : 'Create Account'
               )}
             </button>
           </form>
 
           {/* Mode switch */}
           <div className="mt-6 text-center">
-            <p className="text-white/70 text-sm">
+            <p className="text-white/70">
               {mode === 'signin' ? "Don't have an account?" : "Already have an account?"}
               <button
                 onClick={switchMode}
-                className="ml-1 text-blue-400 hover:text-blue-300 font-medium transition-colors"
+                className="ml-2 text-blue-400 hover:text-blue-300 font-medium transition-colors"
               >
                 {mode === 'signin' ? 'Sign Up' : 'Sign In'}
               </button>
             </p>
           </div>
-
-          {/* Features list (signup only) */}
-          {mode === 'signup' && (
-            <div className="mt-6 p-4 bg-white/5 rounded-lg">
-              <h3 className="text-white font-semibold mb-3 text-sm">What you'll get:</h3>
-              <div className="space-y-2 text-xs text-white/70">
-                <div className="flex items-center">
-                  <CheckCircle className="w-4 h-4 text-green-400 mr-2" />
-                  <span>AI-powered quiz generation</span>
-                </div>
-                <div className="flex items-center">
-                  <CheckCircle className="w-4 h-4 text-green-400 mr-2" />
-                  <span>Personalized learning paths</span>
-                </div>
-                <div className="flex items-center">
-                  <CheckCircle className="w-4 h-4 text-green-400 mr-2" />
-                  <span>Progress tracking & analytics</span>
-                </div>
-                <div className="flex items-center">
-                  <CheckCircle className="w-4 h-4 text-green-400 mr-2" />
-                  <span>Community of learners</span>
-                </div>
-              </div>
-            </div>
-          )}
         </motion.div>
       </motion.div>
     </AnimatePresence>

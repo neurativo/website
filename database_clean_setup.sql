@@ -1,6 +1,6 @@
 -- =====================================================
--- COMPLETE DATABASE SETUP FOR NEURATIVO
--- Perfect Authentication System with User Management
+-- CLEAN DATABASE SETUP FOR NEURATIVO
+-- Handles existing policies and tables gracefully
 -- =====================================================
 
 -- Enable necessary extensions
@@ -8,11 +8,106 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
 -- =====================================================
--- 1. USER MANAGEMENT TABLES
+-- 1. DROP EXISTING POLICIES (if they exist)
 -- =====================================================
 
+-- Drop existing policies to avoid conflicts
+DO $$
+BEGIN
+    -- Users policies
+    DROP POLICY IF EXISTS "Users can view own profile" ON public.users;
+    DROP POLICY IF EXISTS "Users can update own profile" ON public.users;
+    DROP POLICY IF EXISTS "Users can insert own profile" ON public.users;
+    
+    -- User profiles policies
+    DROP POLICY IF EXISTS "Users can view own profile data" ON public.user_profiles;
+    DROP POLICY IF EXISTS "Users can update own profile data" ON public.user_profiles;
+    DROP POLICY IF EXISTS "Users can insert own profile data" ON public.user_profiles;
+    
+    -- Quizzes policies
+    DROP POLICY IF EXISTS "Anyone can view public quizzes" ON public.quizzes;
+    DROP POLICY IF EXISTS "Users can create quizzes" ON public.quizzes;
+    DROP POLICY IF EXISTS "Users can update own quizzes" ON public.quizzes;
+    DROP POLICY IF EXISTS "Users can delete own quizzes" ON public.quizzes;
+    
+    -- Quiz questions policies
+    DROP POLICY IF EXISTS "Anyone can view questions for public quizzes" ON public.quiz_questions;
+    DROP POLICY IF EXISTS "Users can manage questions for own quizzes" ON public.quiz_questions;
+    
+    -- Quiz attempts policies
+    DROP POLICY IF EXISTS "Users can view own attempts" ON public.quiz_attempts;
+    DROP POLICY IF EXISTS "Users can create own attempts" ON public.quiz_attempts;
+    DROP POLICY IF EXISTS "Users can update own attempts" ON public.quiz_attempts;
+    
+    -- User game stats policies
+    DROP POLICY IF EXISTS "Users can view own stats" ON public.user_game_stats;
+    DROP POLICY IF EXISTS "Users can update own stats" ON public.user_game_stats;
+    DROP POLICY IF EXISTS "Users can insert own stats" ON public.user_game_stats;
+    
+    -- Learning paths policies
+    DROP POLICY IF EXISTS "Users can view own learning paths" ON public.learning_paths;
+    DROP POLICY IF EXISTS "Users can manage own learning paths" ON public.learning_paths;
+    
+    -- AI usage logs policies
+    DROP POLICY IF EXISTS "Users can view own AI usage" ON public.ai_usage_logs;
+    DROP POLICY IF EXISTS "Users can create own AI usage logs" ON public.ai_usage_logs;
+    
+    -- Usage logs policies
+    DROP POLICY IF EXISTS "Users can view own usage" ON public.usage_logs;
+    DROP POLICY IF EXISTS "Users can create own usage logs" ON public.usage_logs;
+    
+    -- User analytics policies
+    DROP POLICY IF EXISTS "Users can view own analytics" ON public.user_analytics;
+    DROP POLICY IF EXISTS "Users can create own analytics" ON public.user_analytics;
+    
+    -- System notifications policies
+    DROP POLICY IF EXISTS "Users can view own notifications" ON public.system_notifications;
+    DROP POLICY IF EXISTS "Users can update own notifications" ON public.system_notifications;
+END $$;
+
+-- =====================================================
+-- 2. DROP EXISTING TRIGGERS (if they exist)
+-- =====================================================
+
+DROP TRIGGER IF EXISTS update_users_updated_at ON public.users;
+DROP TRIGGER IF EXISTS update_user_profiles_updated_at ON public.user_profiles;
+DROP TRIGGER IF EXISTS update_quizzes_updated_at ON public.quizzes;
+DROP TRIGGER IF EXISTS update_user_game_stats_updated_at ON public.user_game_stats;
+DROP TRIGGER IF EXISTS update_learning_paths_updated_at ON public.learning_paths;
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+DROP TRIGGER IF EXISTS on_quiz_question_change ON public.quiz_questions;
+
+-- =====================================================
+-- 3. DROP EXISTING FUNCTIONS (if they exist)
+-- =====================================================
+
+DROP FUNCTION IF EXISTS update_updated_at_column();
+DROP FUNCTION IF EXISTS handle_new_user();
+DROP FUNCTION IF EXISTS update_quiz_stats();
+
+-- =====================================================
+-- 4. CREATE TABLES (DROP IF EXISTS)
+-- =====================================================
+
+-- Drop tables in reverse dependency order
+DROP TABLE IF EXISTS public.system_notifications CASCADE;
+DROP TABLE IF EXISTS public.user_analytics CASCADE;
+DROP TABLE IF EXISTS public.ai_usage_logs CASCADE;
+DROP TABLE IF EXISTS public.learning_paths CASCADE;
+DROP TABLE IF EXISTS public.user_game_stats CASCADE;
+DROP TABLE IF EXISTS public.quiz_attempts CASCADE;
+DROP TABLE IF EXISTS public.quiz_questions CASCADE;
+DROP TABLE IF EXISTS public.quizzes CASCADE;
+DROP TABLE IF EXISTS public.quiz_categories CASCADE;
+DROP TABLE IF EXISTS public.usage_logs CASCADE;
+DROP TABLE IF EXISTS public.user_subscriptions CASCADE;
+DROP TABLE IF EXISTS public.subscription_plans CASCADE;
+DROP TABLE IF EXISTS public.user_profiles CASCADE;
+DROP TABLE IF EXISTS public.users CASCADE;
+DROP TABLE IF EXISTS public.admin_settings CASCADE;
+
 -- Users table (extends Supabase auth.users)
-CREATE TABLE IF NOT EXISTS public.users (
+CREATE TABLE public.users (
     id UUID REFERENCES auth.users(id) ON DELETE CASCADE PRIMARY KEY,
     email TEXT UNIQUE NOT NULL,
     username TEXT UNIQUE NOT NULL,
@@ -28,7 +123,7 @@ CREATE TABLE IF NOT EXISTS public.users (
 );
 
 -- User profiles for additional data
-CREATE TABLE IF NOT EXISTS public.user_profiles (
+CREATE TABLE public.user_profiles (
     id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
     user_id UUID REFERENCES public.users(id) ON DELETE CASCADE,
     learning_goals TEXT[],
@@ -40,12 +135,8 @@ CREATE TABLE IF NOT EXISTS public.user_profiles (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- =====================================================
--- 2. SUBSCRIPTION & BILLING TABLES
--- =====================================================
-
 -- Subscription plans
-CREATE TABLE IF NOT EXISTS public.subscription_plans (
+CREATE TABLE public.subscription_plans (
     id TEXT PRIMARY KEY,
     name TEXT NOT NULL,
     description TEXT,
@@ -59,7 +150,7 @@ CREATE TABLE IF NOT EXISTS public.subscription_plans (
 );
 
 -- User subscriptions
-CREATE TABLE IF NOT EXISTS public.user_subscriptions (
+CREATE TABLE public.user_subscriptions (
     id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
     user_id UUID REFERENCES public.users(id) ON DELETE CASCADE,
     plan_id TEXT REFERENCES public.subscription_plans(id),
@@ -72,7 +163,7 @@ CREATE TABLE IF NOT EXISTS public.user_subscriptions (
 );
 
 -- Usage tracking
-CREATE TABLE IF NOT EXISTS public.usage_logs (
+CREATE TABLE public.usage_logs (
     id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
     user_id UUID REFERENCES public.users(id) ON DELETE CASCADE,
     feature TEXT NOT NULL,
@@ -81,12 +172,8 @@ CREATE TABLE IF NOT EXISTS public.usage_logs (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- =====================================================
--- 3. QUIZ MANAGEMENT TABLES
--- =====================================================
-
 -- Quiz categories
-CREATE TABLE IF NOT EXISTS public.quiz_categories (
+CREATE TABLE public.quiz_categories (
     id TEXT PRIMARY KEY,
     name TEXT NOT NULL,
     description TEXT,
@@ -97,7 +184,7 @@ CREATE TABLE IF NOT EXISTS public.quiz_categories (
 );
 
 -- Quizzes table
-CREATE TABLE IF NOT EXISTS public.quizzes (
+CREATE TABLE public.quizzes (
     id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
     title TEXT NOT NULL,
     description TEXT,
@@ -117,7 +204,7 @@ CREATE TABLE IF NOT EXISTS public.quizzes (
 );
 
 -- Quiz questions
-CREATE TABLE IF NOT EXISTS public.quiz_questions (
+CREATE TABLE public.quiz_questions (
     id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
     quiz_id UUID REFERENCES public.quizzes(id) ON DELETE CASCADE,
     question TEXT NOT NULL,
@@ -133,12 +220,8 @@ CREATE TABLE IF NOT EXISTS public.quiz_questions (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- =====================================================
--- 4. USER ACTIVITY & PROGRESS TABLES
--- =====================================================
-
 -- Quiz attempts
-CREATE TABLE IF NOT EXISTS public.quiz_attempts (
+CREATE TABLE public.quiz_attempts (
     id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
     user_id UUID REFERENCES public.users(id) ON DELETE CASCADE,
     quiz_id UUID REFERENCES public.quizzes(id) ON DELETE CASCADE,
@@ -153,7 +236,7 @@ CREATE TABLE IF NOT EXISTS public.quiz_attempts (
 );
 
 -- User game stats
-CREATE TABLE IF NOT EXISTS public.user_game_stats (
+CREATE TABLE public.user_game_stats (
     id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
     user_id UUID REFERENCES public.users(id) ON DELETE CASCADE UNIQUE,
     level INTEGER DEFAULT 1,
@@ -172,7 +255,7 @@ CREATE TABLE IF NOT EXISTS public.user_game_stats (
 );
 
 -- Learning paths
-CREATE TABLE IF NOT EXISTS public.learning_paths (
+CREATE TABLE public.learning_paths (
     id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
     user_id UUID REFERENCES public.users(id) ON DELETE CASCADE,
     title TEXT NOT NULL,
@@ -185,12 +268,8 @@ CREATE TABLE IF NOT EXISTS public.learning_paths (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- =====================================================
--- 5. AI & ANALYTICS TABLES
--- =====================================================
-
 -- AI usage logs
-CREATE TABLE IF NOT EXISTS public.ai_usage_logs (
+CREATE TABLE public.ai_usage_logs (
     id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
     user_id UUID REFERENCES public.users(id) ON DELETE CASCADE,
     feature TEXT NOT NULL,
@@ -204,7 +283,7 @@ CREATE TABLE IF NOT EXISTS public.ai_usage_logs (
 );
 
 -- User analytics
-CREATE TABLE IF NOT EXISTS public.user_analytics (
+CREATE TABLE public.user_analytics (
     id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
     user_id UUID REFERENCES public.users(id) ON DELETE CASCADE,
     date DATE DEFAULT CURRENT_DATE,
@@ -218,12 +297,8 @@ CREATE TABLE IF NOT EXISTS public.user_analytics (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- =====================================================
--- 6. ADMIN & SETTINGS TABLES
--- =====================================================
-
 -- Admin settings
-CREATE TABLE IF NOT EXISTS public.admin_settings (
+CREATE TABLE public.admin_settings (
     id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
     key TEXT UNIQUE NOT NULL,
     value JSONB NOT NULL,
@@ -233,7 +308,7 @@ CREATE TABLE IF NOT EXISTS public.admin_settings (
 );
 
 -- System notifications
-CREATE TABLE IF NOT EXISTS public.system_notifications (
+CREATE TABLE public.system_notifications (
     id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
     user_id UUID REFERENCES public.users(id) ON DELETE CASCADE,
     title TEXT NOT NULL,
@@ -245,40 +320,39 @@ CREATE TABLE IF NOT EXISTS public.system_notifications (
 );
 
 -- =====================================================
--- 7. INDEXES FOR PERFORMANCE
+-- 5. CREATE INDEXES
 -- =====================================================
 
 -- Users indexes
-CREATE INDEX IF NOT EXISTS idx_users_email ON public.users(email);
-CREATE INDEX IF NOT EXISTS idx_users_username ON public.users(username);
+CREATE INDEX idx_users_email ON public.users(email);
+CREATE INDEX idx_users_username ON public.users(username);
 
 -- Quiz indexes
-CREATE INDEX IF NOT EXISTS idx_quizzes_category ON public.quizzes(category);
-CREATE INDEX IF NOT EXISTS idx_quizzes_public ON public.quizzes(is_public);
-CREATE INDEX IF NOT EXISTS idx_quizzes_created_by ON public.quizzes(created_by);
+CREATE INDEX idx_quizzes_category ON public.quizzes(category);
+CREATE INDEX idx_quizzes_public ON public.quizzes(is_public);
+CREATE INDEX idx_quizzes_created_by ON public.quizzes(created_by);
 
 -- Quiz questions indexes
-CREATE INDEX IF NOT EXISTS idx_quiz_questions_quiz_id ON public.quiz_questions(quiz_id);
-CREATE INDEX IF NOT EXISTS idx_quiz_questions_type ON public.quiz_questions(type);
+CREATE INDEX idx_quiz_questions_quiz_id ON public.quiz_questions(quiz_id);
+CREATE INDEX idx_quiz_questions_type ON public.quiz_questions(type);
 
 -- Quiz attempts indexes
-CREATE INDEX IF NOT EXISTS idx_quiz_attempts_user_id ON public.quiz_attempts(user_id);
-CREATE INDEX IF NOT EXISTS idx_quiz_attempts_quiz_id ON public.quiz_attempts(quiz_id);
-CREATE INDEX IF NOT EXISTS idx_quiz_attempts_completed_at ON public.quiz_attempts(completed_at);
+CREATE INDEX idx_quiz_attempts_user_id ON public.quiz_attempts(user_id);
+CREATE INDEX idx_quiz_attempts_quiz_id ON public.quiz_attempts(quiz_id);
+CREATE INDEX idx_quiz_attempts_completed_at ON public.quiz_attempts(completed_at);
 
 -- Usage logs indexes
-CREATE INDEX IF NOT EXISTS idx_usage_logs_user_id ON public.usage_logs(user_id);
-CREATE INDEX IF NOT EXISTS idx_usage_logs_date ON public.usage_logs(usage_date);
+CREATE INDEX idx_usage_logs_user_id ON public.usage_logs(user_id);
+CREATE INDEX idx_usage_logs_date ON public.usage_logs(usage_date);
 
 -- AI usage indexes
-CREATE INDEX IF NOT EXISTS idx_ai_usage_user_id ON public.ai_usage_logs(user_id);
-CREATE INDEX IF NOT EXISTS idx_ai_usage_created_at ON public.ai_usage_logs(created_at);
+CREATE INDEX idx_ai_usage_user_id ON public.ai_usage_logs(user_id);
+CREATE INDEX idx_ai_usage_created_at ON public.ai_usage_logs(created_at);
 
 -- =====================================================
--- 8. ROW LEVEL SECURITY (RLS) POLICIES
+-- 6. ENABLE RLS
 -- =====================================================
 
--- Enable RLS on all tables
 ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.user_profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.user_subscriptions ENABLE ROW LEVEL SECURITY;
@@ -291,6 +365,10 @@ ALTER TABLE public.learning_paths ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.ai_usage_logs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.user_analytics ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.system_notifications ENABLE ROW LEVEL SECURITY;
+
+-- =====================================================
+-- 7. CREATE POLICIES
+-- =====================================================
 
 -- Users policies
 CREATE POLICY "Users can view own profile" ON public.users
@@ -400,7 +478,7 @@ CREATE POLICY "Users can update own notifications" ON public.system_notification
     FOR UPDATE USING (auth.uid() = user_id);
 
 -- =====================================================
--- 9. FUNCTIONS & TRIGGERS
+-- 8. CREATE FUNCTIONS & TRIGGERS
 -- =====================================================
 
 -- Function to update updated_at timestamp
@@ -411,22 +489,6 @@ BEGIN
     RETURN NEW;
 END;
 $$ language 'plpgsql';
-
--- Apply updated_at triggers
-CREATE TRIGGER update_users_updated_at BEFORE UPDATE ON public.users
-    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-
-CREATE TRIGGER update_user_profiles_updated_at BEFORE UPDATE ON public.user_profiles
-    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-
-CREATE TRIGGER update_quizzes_updated_at BEFORE UPDATE ON public.quizzes
-    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-
-CREATE TRIGGER update_user_game_stats_updated_at BEFORE UPDATE ON public.user_game_stats
-    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-
-CREATE TRIGGER update_learning_paths_updated_at BEFORE UPDATE ON public.learning_paths
-    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 -- Function to create user profile on signup
 CREATE OR REPLACE FUNCTION handle_new_user()
@@ -441,11 +503,6 @@ BEGIN
     RETURN NEW;
 END;
 $$ language 'plpgsql';
-
--- Trigger to create user profile
-CREATE TRIGGER on_auth_user_created
-    AFTER INSERT ON auth.users
-    FOR EACH ROW EXECUTE FUNCTION handle_new_user();
 
 -- Function to update quiz stats
 CREATE OR REPLACE FUNCTION update_quiz_stats()
@@ -463,13 +520,32 @@ BEGIN
 END;
 $$ language 'plpgsql';
 
--- Trigger to update quiz stats
+-- Apply triggers
+CREATE TRIGGER update_users_updated_at BEFORE UPDATE ON public.users
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_user_profiles_updated_at BEFORE UPDATE ON public.user_profiles
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_quizzes_updated_at BEFORE UPDATE ON public.quizzes
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_user_game_stats_updated_at BEFORE UPDATE ON public.user_game_stats
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_learning_paths_updated_at BEFORE UPDATE ON public.learning_paths
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER on_auth_user_created
+    AFTER INSERT ON auth.users
+    FOR EACH ROW EXECUTE FUNCTION handle_new_user();
+
 CREATE TRIGGER on_quiz_question_change
     AFTER INSERT OR DELETE ON public.quiz_questions
     FOR EACH ROW EXECUTE FUNCTION update_quiz_stats();
 
 -- =====================================================
--- 10. INITIAL DATA
+-- 9. INSERT INITIAL DATA
 -- =====================================================
 
 -- Insert default subscription plans
@@ -504,7 +580,7 @@ INSERT INTO public.admin_settings (key, value, description) VALUES
 ('feature_flags', '{"beta_features": false, "advanced_analytics": true, "social_features": true}', 'Feature flags for A/B testing');
 
 -- =====================================================
--- 11. GRANTS & PERMISSIONS
+-- 10. GRANTS & PERMISSIONS
 -- =====================================================
 
 -- Grant necessary permissions
@@ -514,14 +590,15 @@ GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO anon, authenticated;
 GRANT ALL ON ALL FUNCTIONS IN SCHEMA public TO anon, authenticated;
 
 -- =====================================================
--- COMPLETE SETUP FINISHED
+-- CLEAN SETUP COMPLETED
 -- =====================================================
 
 -- Success message
 DO $$
 BEGIN
-    RAISE NOTICE 'Database setup completed successfully!';
-    RAISE NOTICE 'Tables created: users, user_profiles, subscription_plans, user_subscriptions, usage_logs, quiz_categories, quizzes, quiz_questions, quiz_attempts, user_game_stats, learning_paths, ai_usage_logs, user_analytics, admin_settings, system_notifications';
+    RAISE NOTICE 'Clean database setup completed successfully!';
+    RAISE NOTICE 'All existing policies and tables were dropped and recreated';
+    RAISE NOTICE 'All tables created with proper structure';
     RAISE NOTICE 'RLS policies configured for security';
     RAISE NOTICE 'Triggers and functions created for automation';
     RAISE NOTICE 'Initial data inserted (subscription plans, categories, settings)';

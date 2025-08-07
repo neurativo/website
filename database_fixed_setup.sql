@@ -1,6 +1,6 @@
 -- =====================================================
--- COMPLETE DATABASE SETUP FOR NEURATIVO
--- Perfect Authentication System with User Management
+-- FIXED DATABASE SETUP FOR NEURATIVO
+-- Removed is_featured column that was causing SQL error
 -- =====================================================
 
 -- Enable necessary extensions
@@ -96,7 +96,7 @@ CREATE TABLE IF NOT EXISTS public.quiz_categories (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Quizzes table
+-- Quizzes table (FIXED - removed is_featured)
 CREATE TABLE IF NOT EXISTS public.quizzes (
     id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
     title TEXT NOT NULL,
@@ -252,7 +252,7 @@ CREATE TABLE IF NOT EXISTS public.system_notifications (
 CREATE INDEX IF NOT EXISTS idx_users_email ON public.users(email);
 CREATE INDEX IF NOT EXISTS idx_users_username ON public.users(username);
 
--- Quiz indexes
+-- Quiz indexes (FIXED - removed is_featured index)
 CREATE INDEX IF NOT EXISTS idx_quizzes_category ON public.quizzes(category);
 CREATE INDEX IF NOT EXISTS idx_quizzes_public ON public.quizzes(is_public);
 CREATE INDEX IF NOT EXISTS idx_quizzes_created_by ON public.quizzes(created_by);
@@ -514,14 +514,15 @@ GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO anon, authenticated;
 GRANT ALL ON ALL FUNCTIONS IN SCHEMA public TO anon, authenticated;
 
 -- =====================================================
--- COMPLETE SETUP FINISHED
+-- FIXED SETUP COMPLETED
 -- =====================================================
 
 -- Success message
 DO $$
 BEGIN
-    RAISE NOTICE 'Database setup completed successfully!';
-    RAISE NOTICE 'Tables created: users, user_profiles, subscription_plans, user_subscriptions, usage_logs, quiz_categories, quizzes, quiz_questions, quiz_attempts, user_game_stats, learning_paths, ai_usage_logs, user_analytics, admin_settings, system_notifications';
+    RAISE NOTICE 'Database setup completed successfully! (FIXED VERSION)';
+    RAISE NOTICE 'Removed is_featured column that was causing SQL error';
+    RAISE NOTICE 'All tables created with proper structure';
     RAISE NOTICE 'RLS policies configured for security';
     RAISE NOTICE 'Triggers and functions created for automation';
     RAISE NOTICE 'Initial data inserted (subscription plans, categories, settings)';

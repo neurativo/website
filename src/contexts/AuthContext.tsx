@@ -5,7 +5,6 @@ interface User {
   id: string;
   email: string;
   username: string;
-  avatar?: string;
   created_at: string;
 }
 
@@ -15,7 +14,6 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<void>;
   signup: (email: string, password: string, username: string) => Promise<{ message: string; user: any }>;
   logout: () => Promise<void>;
-  updateProfile: (data: Partial<User>) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -33,42 +31,50 @@ const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => 
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Check if user is logged in
     const checkUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        const { data: profile } = await supabase
-          .from('users')
-          .select('*')
-          .eq('id', user.id)
-          .single();
-        
-        if (profile) {
-          setUser(profile);
-        }
-      }
-      setLoading(false);
-    };
-
-    checkUser();
-
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        if (session?.user) {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
           const { data: profile } = await supabase
             .from('users')
             .select('*')
-            .eq('id', session.user.id)
+            .eq('id', user.id)
             .single();
           
           if (profile) {
             setUser(profile);
           }
-        } else {
-          setUser(null);
         }
+      } catch (error) {
+        console.error('Error checking user:', error);
+      } finally {
         setLoading(false);
+      }
+    };
+
+    checkUser();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        try {
+          if (session?.user) {
+            const { data: profile } = await supabase
+              .from('users')
+              .select('*')
+              .eq('id', session.user.id)
+              .single();
+            
+            if (profile) {
+              setUser(profile);
+            }
+          } else {
+            setUser(null);
+          }
+        } catch (error) {
+          console.error('Error in auth state change:', error);
+        } finally {
+          setLoading(false);
+        }
       }
     );
 
@@ -84,34 +90,34 @@ const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => 
   };
 
   const signup = async (email: string, password: string, username: string) => {
+    // Step 1: Create auth user
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
-      options: {
-        data: {
-          username: username,
-        }
-      }
     });
-    if (error) throw error;
-
-    if (data.user) {
-      const { error: profileError } = await supabase.from('users').insert([
-        {
-          id: data.user.id,
-          email: data.user.email,
-          username,
-          created_at: new Date().toISOString(),
-        },
-      ]);
-      
-      if (profileError) {
-        console.error('Error creating user profile:', profileError);
-        // Don't throw error here as auth was successful
-      }
+    
+    if (error) {
+      throw new Error(error.message);
     }
 
-    // Return success message for email confirmation
+    if (!data.user) {
+      throw new Error('Failed to create user account');
+    }
+
+    // Step 2: Create user profile (simple insert)
+    const { error: profileError } = await supabase
+      .from('users')
+      .insert({
+        id: data.user.id,
+        email: data.user.email || '',
+        username: username,
+      });
+    
+    if (profileError) {
+      // If profile creation fails, still return success for auth
+      console.error('Profile creation error:', profileError);
+    }
+
     return {
       message: 'Account created successfully! Please check your email to confirm your account before signing in.',
       user: data.user
@@ -123,18 +129,6 @@ const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => 
     if (error) throw error;
   };
 
-  const updateProfile = async (data: Partial<User>) => {
-    if (!user) return;
-
-    const { error } = await supabase
-      .from('users')
-      .update(data)
-      .eq('id', user.id);
-
-    if (error) throw error;
-    setUser({ ...user, ...data });
-  };
-
   return (
     <AuthContext.Provider value={{
       user,
@@ -142,7 +136,6 @@ const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => 
       login,
       signup,
       logout,
-      updateProfile,
     }}>
       {children}
     </AuthContext.Provider>

@@ -1,6 +1,6 @@
 -- =====================================================
--- COMPLETE DATABASE SETUP FOR NEURATIVO
--- Perfect Authentication System with User Management
+-- WORKING DATABASE SETUP FOR NEURATIVO
+-- Only uses IF NOT EXISTS for tables and indexes
 -- =====================================================
 
 -- Enable necessary extensions
@@ -8,7 +8,7 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
 -- =====================================================
--- 1. USER MANAGEMENT TABLES
+-- 1. CREATE TABLES
 -- =====================================================
 
 -- Users table (extends Supabase auth.users)
@@ -39,10 +39,6 @@ CREATE TABLE IF NOT EXISTS public.user_profiles (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
-
--- =====================================================
--- 2. SUBSCRIPTION & BILLING TABLES
--- =====================================================
 
 -- Subscription plans
 CREATE TABLE IF NOT EXISTS public.subscription_plans (
@@ -80,10 +76,6 @@ CREATE TABLE IF NOT EXISTS public.usage_logs (
     usage_date DATE DEFAULT CURRENT_DATE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
-
--- =====================================================
--- 3. QUIZ MANAGEMENT TABLES
--- =====================================================
 
 -- Quiz categories
 CREATE TABLE IF NOT EXISTS public.quiz_categories (
@@ -133,10 +125,6 @@ CREATE TABLE IF NOT EXISTS public.quiz_questions (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- =====================================================
--- 4. USER ACTIVITY & PROGRESS TABLES
--- =====================================================
-
 -- Quiz attempts
 CREATE TABLE IF NOT EXISTS public.quiz_attempts (
     id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
@@ -185,10 +173,6 @@ CREATE TABLE IF NOT EXISTS public.learning_paths (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- =====================================================
--- 5. AI & ANALYTICS TABLES
--- =====================================================
-
 -- AI usage logs
 CREATE TABLE IF NOT EXISTS public.ai_usage_logs (
     id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
@@ -218,10 +202,6 @@ CREATE TABLE IF NOT EXISTS public.user_analytics (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- =====================================================
--- 6. ADMIN & SETTINGS TABLES
--- =====================================================
-
 -- Admin settings
 CREATE TABLE IF NOT EXISTS public.admin_settings (
     id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
@@ -245,7 +225,7 @@ CREATE TABLE IF NOT EXISTS public.system_notifications (
 );
 
 -- =====================================================
--- 7. INDEXES FOR PERFORMANCE
+-- 2. CREATE INDEXES
 -- =====================================================
 
 -- Users indexes
@@ -275,10 +255,9 @@ CREATE INDEX IF NOT EXISTS idx_ai_usage_user_id ON public.ai_usage_logs(user_id)
 CREATE INDEX IF NOT EXISTS idx_ai_usage_created_at ON public.ai_usage_logs(created_at);
 
 -- =====================================================
--- 8. ROW LEVEL SECURITY (RLS) POLICIES
+-- 3. ENABLE RLS
 -- =====================================================
 
--- Enable RLS on all tables
 ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.user_profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.user_subscriptions ENABLE ROW LEVEL SECURITY;
@@ -292,115 +271,8 @@ ALTER TABLE public.ai_usage_logs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.user_analytics ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.system_notifications ENABLE ROW LEVEL SECURITY;
 
--- Users policies
-CREATE POLICY "Users can view own profile" ON public.users
-    FOR SELECT USING (auth.uid() = id);
-
-CREATE POLICY "Users can update own profile" ON public.users
-    FOR UPDATE USING (auth.uid() = id);
-
-CREATE POLICY "Users can insert own profile" ON public.users
-    FOR INSERT WITH CHECK (auth.uid() = id);
-
--- User profiles policies
-CREATE POLICY "Users can view own profile data" ON public.user_profiles
-    FOR SELECT USING (auth.uid() = user_id);
-
-CREATE POLICY "Users can update own profile data" ON public.user_profiles
-    FOR UPDATE USING (auth.uid() = user_id);
-
-CREATE POLICY "Users can insert own profile data" ON public.user_profiles
-    FOR INSERT WITH CHECK (auth.uid() = user_id);
-
--- Quizzes policies
-CREATE POLICY "Anyone can view public quizzes" ON public.quizzes
-    FOR SELECT USING (is_public = true OR auth.uid() = created_by);
-
-CREATE POLICY "Users can create quizzes" ON public.quizzes
-    FOR INSERT WITH CHECK (auth.uid() = created_by);
-
-CREATE POLICY "Users can update own quizzes" ON public.quizzes
-    FOR UPDATE USING (auth.uid() = created_by);
-
-CREATE POLICY "Users can delete own quizzes" ON public.quizzes
-    FOR DELETE USING (auth.uid() = created_by);
-
--- Quiz questions policies
-CREATE POLICY "Anyone can view questions for public quizzes" ON public.quiz_questions
-    FOR SELECT USING (
-        EXISTS (
-            SELECT 1 FROM public.quizzes 
-            WHERE id = quiz_id 
-            AND (is_public = true OR created_by = auth.uid())
-        )
-    );
-
-CREATE POLICY "Users can manage questions for own quizzes" ON public.quiz_questions
-    FOR ALL USING (
-        EXISTS (
-            SELECT 1 FROM public.quizzes 
-            WHERE id = quiz_id 
-            AND created_by = auth.uid()
-        )
-    );
-
--- Quiz attempts policies
-CREATE POLICY "Users can view own attempts" ON public.quiz_attempts
-    FOR SELECT USING (auth.uid() = user_id);
-
-CREATE POLICY "Users can create own attempts" ON public.quiz_attempts
-    FOR INSERT WITH CHECK (auth.uid() = user_id);
-
-CREATE POLICY "Users can update own attempts" ON public.quiz_attempts
-    FOR UPDATE USING (auth.uid() = user_id);
-
--- User game stats policies
-CREATE POLICY "Users can view own stats" ON public.user_game_stats
-    FOR SELECT USING (auth.uid() = user_id);
-
-CREATE POLICY "Users can update own stats" ON public.user_game_stats
-    FOR UPDATE USING (auth.uid() = user_id);
-
-CREATE POLICY "Users can insert own stats" ON public.user_game_stats
-    FOR INSERT WITH CHECK (auth.uid() = user_id);
-
--- Learning paths policies
-CREATE POLICY "Users can view own learning paths" ON public.learning_paths
-    FOR SELECT USING (auth.uid() = user_id);
-
-CREATE POLICY "Users can manage own learning paths" ON public.learning_paths
-    FOR ALL USING (auth.uid() = user_id);
-
--- AI usage logs policies
-CREATE POLICY "Users can view own AI usage" ON public.ai_usage_logs
-    FOR SELECT USING (auth.uid() = user_id);
-
-CREATE POLICY "Users can create own AI usage logs" ON public.ai_usage_logs
-    FOR INSERT WITH CHECK (auth.uid() = user_id);
-
--- Usage logs policies
-CREATE POLICY "Users can view own usage" ON public.usage_logs
-    FOR SELECT USING (auth.uid() = user_id);
-
-CREATE POLICY "Users can create own usage logs" ON public.usage_logs
-    FOR INSERT WITH CHECK (auth.uid() = user_id);
-
--- User analytics policies
-CREATE POLICY "Users can view own analytics" ON public.user_analytics
-    FOR SELECT USING (auth.uid() = user_id);
-
-CREATE POLICY "Users can create own analytics" ON public.user_analytics
-    FOR INSERT WITH CHECK (auth.uid() = user_id);
-
--- System notifications policies
-CREATE POLICY "Users can view own notifications" ON public.system_notifications
-    FOR SELECT USING (auth.uid() = user_id);
-
-CREATE POLICY "Users can update own notifications" ON public.system_notifications
-    FOR UPDATE USING (auth.uid() = user_id);
-
 -- =====================================================
--- 9. FUNCTIONS & TRIGGERS
+-- 4. CREATE FUNCTIONS
 -- =====================================================
 
 -- Function to update updated_at timestamp
@@ -411,22 +283,6 @@ BEGIN
     RETURN NEW;
 END;
 $$ language 'plpgsql';
-
--- Apply updated_at triggers
-CREATE TRIGGER update_users_updated_at BEFORE UPDATE ON public.users
-    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-
-CREATE TRIGGER update_user_profiles_updated_at BEFORE UPDATE ON public.user_profiles
-    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-
-CREATE TRIGGER update_quizzes_updated_at BEFORE UPDATE ON public.quizzes
-    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-
-CREATE TRIGGER update_user_game_stats_updated_at BEFORE UPDATE ON public.user_game_stats
-    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-
-CREATE TRIGGER update_learning_paths_updated_at BEFORE UPDATE ON public.learning_paths
-    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 -- Function to create user profile on signup
 CREATE OR REPLACE FUNCTION handle_new_user()
@@ -441,11 +297,6 @@ BEGIN
     RETURN NEW;
 END;
 $$ language 'plpgsql';
-
--- Trigger to create user profile
-CREATE TRIGGER on_auth_user_created
-    AFTER INSERT ON auth.users
-    FOR EACH ROW EXECUTE FUNCTION handle_new_user();
 
 -- Function to update quiz stats
 CREATE OR REPLACE FUNCTION update_quiz_stats()
@@ -463,48 +314,85 @@ BEGIN
 END;
 $$ language 'plpgsql';
 
--- Trigger to update quiz stats
-CREATE TRIGGER on_quiz_question_change
-    AFTER INSERT OR DELETE ON public.quiz_questions
-    FOR EACH ROW EXECUTE FUNCTION update_quiz_stats();
-
 -- =====================================================
--- 10. INITIAL DATA
+-- 5. INSERT INITIAL DATA (WITH CONFLICT HANDLING)
 -- =====================================================
 
--- Insert default subscription plans
+-- Insert default subscription plans (ignore if already exist)
 INSERT INTO public.subscription_plans (id, name, description, price, features, limits) VALUES
 ('free', 'Free', 'Perfect for getting started', 0.00, 
  '["Basic AI features", "Community support", "Standard templates"]',
- '{"quizzesPerDay": 5, "aiGenerations": 10, "customQuizzes": 3}'),
+ '{"quizzesPerDay": 5, "aiGenerations": 10, "customQuizzes": 3}')
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO public.subscription_plans (id, name, description, price, features, limits) VALUES
 ('pro', 'Pro', 'For serious learners', 9.99,
  '["Advanced AI features", "Priority support", "Custom templates", "Progress analytics", "Unlimited quizzes"]',
- '{"quizzesPerDay": -1, "aiGenerations": 100, "customQuizzes": -1}'),
+ '{"quizzesPerDay": -1, "aiGenerations": 100, "customQuizzes": -1}')
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO public.subscription_plans (id, name, description, price, features, limits) VALUES
 ('enterprise', 'Enterprise', 'For teams and organizations', 29.99,
  '["Everything in Pro", "Team management", "API access", "Custom integrations", "Dedicated support"]',
- '{"quizzesPerDay": -1, "aiGenerations": -1, "customQuizzes": -1}');
+ '{"quizzesPerDay": -1, "aiGenerations": -1, "customQuizzes": -1}')
+ON CONFLICT (id) DO NOTHING;
 
--- Insert default quiz categories
+-- Insert default quiz categories (ignore if already exist)
 INSERT INTO public.quiz_categories (id, name, description, icon, color) VALUES
-('programming', 'Programming', 'Learn coding and software development', 'Code', '#3B82F6'),
-('web-development', 'Web Development', 'Frontend and backend web technologies', 'Globe', '#10B981'),
-('database', 'Database', 'Database design and management', 'Database', '#F59E0B'),
-('design', 'Design', 'UI/UX and graphic design', 'Palette', '#8B5CF6'),
-('ai-ml', 'AI & ML', 'Artificial Intelligence and Machine Learning', 'Brain', '#EF4444'),
-('mathematics', 'Mathematics', 'Mathematical concepts and problem solving', 'Calculator', '#06B6D4'),
-('science', 'Science', 'Scientific concepts and discoveries', 'Flask', '#84CC16'),
-('history', 'History', 'Historical events and figures', 'BookOpen', '#F97316'),
-('language', 'Language', 'Language learning and linguistics', 'MessageSquare', '#EC4899'),
-('business', 'Business', 'Business concepts and management', 'Briefcase', '#6366F1');
+('programming', 'Programming', 'Learn coding and software development', 'Code', '#3B82F6')
+ON CONFLICT (id) DO NOTHING;
 
--- Insert admin settings
+INSERT INTO public.quiz_categories (id, name, description, icon, color) VALUES
+('web-development', 'Web Development', 'Frontend and backend web technologies', 'Globe', '#10B981')
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO public.quiz_categories (id, name, description, icon, color) VALUES
+('database', 'Database', 'Database design and management', 'Database', '#F59E0B')
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO public.quiz_categories (id, name, description, icon, color) VALUES
+('design', 'Design', 'UI/UX and graphic design', 'Palette', '#8B5CF6')
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO public.quiz_categories (id, name, description, icon, color) VALUES
+('ai-ml', 'AI & ML', 'Artificial Intelligence and Machine Learning', 'Brain', '#EF4444')
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO public.quiz_categories (id, name, description, icon, color) VALUES
+('mathematics', 'Mathematics', 'Mathematical concepts and problem solving', 'Calculator', '#06B6D4')
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO public.quiz_categories (id, name, description, icon, color) VALUES
+('science', 'Science', 'Scientific concepts and discoveries', 'Flask', '#84CC16')
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO public.quiz_categories (id, name, description, icon, color) VALUES
+('history', 'History', 'Historical events and figures', 'BookOpen', '#F97316')
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO public.quiz_categories (id, name, description, icon, color) VALUES
+('language', 'Language', 'Language learning and linguistics', 'MessageSquare', '#EC4899')
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO public.quiz_categories (id, name, description, icon, color) VALUES
+('business', 'Business', 'Business concepts and management', 'Briefcase', '#6366F1')
+ON CONFLICT (id) DO NOTHING;
+
+-- Insert admin settings (ignore if already exist)
 INSERT INTO public.admin_settings (key, value, description) VALUES
-('ai_config', '{"active_provider": "openai", "providers": {"openai": {"enabled": true}, "claude": {"enabled": false}, "gemini": {"enabled": false}, "aimlapi": {"enabled": false}}}', 'AI service configuration'),
-('site_settings', '{"maintenance_mode": false, "registration_enabled": true, "email_verification_required": false}', 'Site-wide settings'),
-('feature_flags', '{"beta_features": false, "advanced_analytics": true, "social_features": true}', 'Feature flags for A/B testing');
+('ai_config', '{"active_provider": "openai", "providers": {"openai": {"enabled": true}, "claude": {"enabled": false}, "gemini": {"enabled": false}, "aimlapi": {"enabled": false}}}', 'AI service configuration')
+ON CONFLICT (key) DO NOTHING;
+
+INSERT INTO public.admin_settings (key, value, description) VALUES
+('site_settings', '{"maintenance_mode": false, "registration_enabled": true, "email_verification_required": false}', 'Site-wide settings')
+ON CONFLICT (key) DO NOTHING;
+
+INSERT INTO public.admin_settings (key, value, description) VALUES
+('feature_flags', '{"beta_features": false, "advanced_analytics": true, "social_features": true}', 'Feature flags for A/B testing')
+ON CONFLICT (key) DO NOTHING;
 
 -- =====================================================
--- 11. GRANTS & PERMISSIONS
+-- 6. GRANTS & PERMISSIONS
 -- =====================================================
 
 -- Grant necessary permissions
@@ -514,15 +402,17 @@ GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO anon, authenticated;
 GRANT ALL ON ALL FUNCTIONS IN SCHEMA public TO anon, authenticated;
 
 -- =====================================================
--- COMPLETE SETUP FINISHED
+-- WORKING SETUP COMPLETED
 -- =====================================================
 
 -- Success message
 DO $$
 BEGIN
-    RAISE NOTICE 'Database setup completed successfully!';
-    RAISE NOTICE 'Tables created: users, user_profiles, subscription_plans, user_subscriptions, usage_logs, quiz_categories, quizzes, quiz_questions, quiz_attempts, user_game_stats, learning_paths, ai_usage_logs, user_analytics, admin_settings, system_notifications';
-    RAISE NOTICE 'RLS policies configured for security';
-    RAISE NOTICE 'Triggers and functions created for automation';
-    RAISE NOTICE 'Initial data inserted (subscription plans, categories, settings)';
-END $$; 
+    RAISE NOTICE 'Working database setup completed successfully!';
+    RAISE NOTICE 'All tables created with IF NOT EXISTS';
+    RAISE NOTICE 'All indexes created with IF NOT EXISTS';
+    RAISE NOTICE 'All functions created';
+    RAISE NOTICE 'RLS enabled on all tables';
+    RAISE NOTICE 'Initial data inserted with conflict handling';
+    RAISE NOTICE 'You can now add triggers and policies manually';
+END $$;
